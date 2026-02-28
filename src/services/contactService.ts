@@ -132,3 +132,4 @@ return {
   phoneNumbers: Array.from(phoneSet),
   secondaryContactIds: secondaryIds,
 };
+  }
