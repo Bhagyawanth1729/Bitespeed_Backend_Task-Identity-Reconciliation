@@ -6,7 +6,6 @@ const app = express();
 app.use(express.json());
 app.use("/", identifyRoute);
 
-// ✅ Dynamic Port (Required for Render)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
