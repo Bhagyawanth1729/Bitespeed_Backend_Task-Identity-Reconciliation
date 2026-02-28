@@ -1,16 +1,14 @@
 import express from "express";
 import identifyRoute from "./routes/identify";
-import { pool } from "./db";
 
 const app = express();
 
 app.use(express.json());
 app.use("/", identifyRoute);
 
-pool.connect()
-  .then(() => console.log("✅ Database Connected"))
-  .catch((err) => console.error("❌ DB Connection Failed:", err));
+// ✅ Dynamic Port (Required for Render)
+const PORT = process.env.PORT || 3000;
 
-app.listen(3000, () => {
-  console.log("🚀 Server running on port 3000");
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
