@@ -114,13 +114,11 @@ http://localhost:3000
 ## Build for Production
 npm run build
 npm start
- Submission
 
-GitHub Repository Link
 
+Submission
 Hosted /identify endpoint URL
 
 ##Author
-
 Bhagyawanth
 Bitespeed Backend Task Submission
