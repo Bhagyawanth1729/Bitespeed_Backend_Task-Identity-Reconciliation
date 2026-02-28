@@ -102,42 +102,33 @@ export async function identifyContact(
       );
     }
 
-    // 8️⃣ Fetch updated cluster
-    const { rows: final } = await client.query(
-      `
-      SELECT * FROM Contact
-      WHERE id = $1 OR linkedId = $1
-      `,
-      [oldestPrimary.id]
-    );
+const { rows: final } = await client.query(
+  `
+  SELECT * FROM Contact
+  WHERE id = $1 OR linkedId = $1
+  `,
+  [oldestPrimary.id]
+);
 
-    await client.query("COMMIT");
+await client.query("COMMIT");
 
-    return {
-      primaryContactId: oldestPrimary.id,
-      emails: [
-        oldestPrimary.email,
-        ...final
-          .filter(c => c.linkprecedence === "secondary")
-          .map(c => c.email)
-          .filter(Boolean),
-      ],
-      phoneNumbers: [
-        oldestPrimary.phonenumber,
-        ...final
-          .filter(c => c.linkprecedence === "secondary")
-          .map(c => c.phonenumber)
-          .filter(Boolean),
-      ],
-      secondaryContactIds: final
-        .filter(c => c.linkprecedence === "secondary")
-        .map(c => c.id),
-    };
+// ✅ Remove duplicates using Set
+const emailSet = new Set<string>();
+const phoneSet = new Set<string>();
+const secondaryIds: number[] = [];
 
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
+for (const contact of final) {
+  if (contact.email) emailSet.add(contact.email);
+  if (contact.phonenumber) phoneSet.add(contact.phonenumber);
+
+  if (contact.linkprecedence === "secondary") {
+    secondaryIds.push(contact.id);
   }
 }
+
+return {
+  primaryContactId: oldestPrimary.id,
+  emails: Array.from(emailSet),
+  phoneNumbers: Array.from(phoneSet),
+  secondaryContactIds: secondaryIds,
+};
