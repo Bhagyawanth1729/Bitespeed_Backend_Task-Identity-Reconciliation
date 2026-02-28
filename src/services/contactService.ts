@@ -9,8 +9,8 @@ export async function identifyContact(
   try {
     await client.query("BEGIN");
 
-    // Find existing contacts matching email or phone
-    const { rows } = await client.query(
+    // 1️⃣ Find all contacts matching email OR phone
+    const { rows: matched } = await client.query(
       `
       SELECT * FROM Contact
       WHERE email = $1 OR phoneNumber = $2
@@ -18,9 +18,9 @@ export async function identifyContact(
       [email, phoneNumber]
     );
 
-    // Case 1: No existing contact → Create primary
-    if (rows.length === 0) {
-      const insert = await client.query(
+    // 2️⃣ If no match → create new primary
+    if (matched.length === 0) {
+      const { rows } = await client.query(
         `
         INSERT INTO Contact (email, phoneNumber, linkPrecedence)
         VALUES ($1, $2, 'primary')
@@ -32,27 +32,47 @@ export async function identifyContact(
       await client.query("COMMIT");
 
       return {
-        primaryContactId: insert.rows[0].id,
+        primaryContactId: rows[0].id,
         emails: email ? [email] : [],
         phoneNumbers: phoneNumber ? [phoneNumber] : [],
         secondaryContactIds: [],
       };
     }
 
-    // Find oldest primary
-    const primaryContacts = rows.filter(
+    // 3️⃣ Collect all related IDs (primary + secondary)
+    const primaryIds = new Set<number>();
+
+    for (const contact of matched) {
+      if (contact.linkprecedence === "primary") {
+        primaryIds.add(contact.id);
+      } else {
+        primaryIds.add(contact.linkedid);
+      }
+    }
+
+    // 4️⃣ Get full cluster
+    const { rows: cluster } = await client.query(
+      `
+      SELECT * FROM Contact
+      WHERE id = ANY($1) OR linkedId = ANY($1)
+      `,
+      [Array.from(primaryIds)]
+    );
+
+    // 5️⃣ Determine oldest primary
+    const primaries = cluster.filter(
       (c) => c.linkprecedence === "primary"
     );
 
-    const oldestPrimary = primaryContacts.sort(
+    const oldestPrimary = primaries.sort(
       (a, b) =>
         new Date(a.createdat).getTime() -
         new Date(b.createdat).getTime()
     )[0];
 
-    // Convert other primaries to secondary
-    for (const contact of primaryContacts) {
-      if (contact.id !== oldestPrimary.id) {
+    // 6️⃣ Convert other primaries to secondary
+    for (const primary of primaries) {
+      if (primary.id !== oldestPrimary.id) {
         await client.query(
           `
           UPDATE Contact
@@ -60,16 +80,19 @@ export async function identifyContact(
               linkedId = $1
           WHERE id = $2
           `,
-          [oldestPrimary.id, contact.id]
+          [oldestPrimary.id, primary.id]
         );
       }
     }
 
-    // Check if new info needs new secondary
-    const emails = new Set(rows.map((r) => r.email).filter(Boolean));
-    const phones = new Set(rows.map((r) => r.phonenumber).filter(Boolean));
+    // 7️⃣ Check if new secondary needed
+    const existingEmails = new Set(cluster.map(c => c.email).filter(Boolean));
+    const existingPhones = new Set(cluster.map(c => c.phonenumber).filter(Boolean));
 
-    if (!emails.has(email) || !phones.has(phoneNumber)) {
+    if (
+      (email && !existingEmails.has(email)) ||
+      (phoneNumber && !existingPhones.has(phoneNumber))
+    ) {
       await client.query(
         `
         INSERT INTO Contact (email, phoneNumber, linkedId, linkPrecedence)
@@ -79,8 +102,8 @@ export async function identifyContact(
       );
     }
 
-    // Fetch final consolidated contacts
-    const finalContacts = await client.query(
+    // 8️⃣ Fetch updated cluster
+    const { rows: final } = await client.query(
       `
       SELECT * FROM Contact
       WHERE id = $1 OR linkedId = $1
@@ -90,28 +113,27 @@ export async function identifyContact(
 
     await client.query("COMMIT");
 
-    const all = finalContacts.rows;
-
     return {
       primaryContactId: oldestPrimary.id,
       emails: [
         oldestPrimary.email,
-        ...all
-          .filter((c) => c.linkprecedence === "secondary")
-          .map((c) => c.email)
+        ...final
+          .filter(c => c.linkprecedence === "secondary")
+          .map(c => c.email)
           .filter(Boolean),
       ],
       phoneNumbers: [
         oldestPrimary.phonenumber,
-        ...all
-          .filter((c) => c.linkprecedence === "secondary")
-          .map((c) => c.phonenumber)
+        ...final
+          .filter(c => c.linkprecedence === "secondary")
+          .map(c => c.phonenumber)
           .filter(Boolean),
       ],
-      secondaryContactIds: all
-        .filter((c) => c.linkprecedence === "secondary")
-        .map((c) => c.id),
+      secondaryContactIds: final
+        .filter(c => c.linkprecedence === "secondary")
+        .map(c => c.id),
     };
+
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
