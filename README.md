@@ -95,12 +95,11 @@ Response
     "secondaryContactIds": [23]
   }
 }
-## Hosted Endpoint
-https://your-app-name.onrender.com/identify
+##  Hosted Endpoint
+https://bitespeed-backend-task-identity-2ztq.onrender.com/identify
 
-(Replace with your actual deployed URL)
 
-## How to Run Locally
+##  How to Run Locally
 1. Install dependencies
 npm install
 2. Create PostgreSQL database
@@ -117,7 +116,7 @@ npm start
 
 
 Submission
-Hosted /identify endpoint URL
+https://bitespeed-backend-task-identity-2ztq.onrender.com/identify
 
 ##Author
 Bhagyawanth
