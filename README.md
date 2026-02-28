@@ -44,7 +44,7 @@ Table: `Contact`
 | updatedAt | DateTime | Last update time |
 | deletedAt | DateTime? | Soft delete |
 
----
+
 
 ## 🔗 API Endpoint
 
@@ -68,7 +68,7 @@ Table: `Contact`
   }
 }
 
----
+
 Behaviour Rules
 
 -If no matching contact → create new primary
@@ -76,7 +76,7 @@ Behaviour Rules
 -If new information provided → create secondary
 -If two primaries are linked → oldest remains primary
 -All linked records return under one consolidated response
----
+
 
 #$ Example
 Request
@@ -96,7 +96,7 @@ Response
     "secondaryContactIds": [23]
   }
 }
-----
+
 ##  Hosted Endpoint
 https://bitespeed-backend-task-identity-2ztq.onrender.com/identify
 
@@ -108,19 +108,19 @@ npm install
 CREATE DATABASE bitespeed;
 3. Start development server
 npm run dev
-----
+
 Server runs on:
 
 http://localhost:3000
 ## Build for Production
 npm run build
 npm start
------
+
 
 Submission
 https://bitespeed-backend-task-identity-2ztq.onrender.com/identify
-----
+
 ##Author
 Bhagyawanth
 Bitespeed Backend Task Submission
----
+
