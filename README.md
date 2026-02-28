@@ -67,7 +67,7 @@ Table: `Contact`
     "secondaryContactIds": [number]
   }
 }
-
+```
 
 Behaviour Rules
 
