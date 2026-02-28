@@ -67,3 +67,60 @@ Table: `Contact`
     "secondaryContactIds": [number]
   }
 }
+
+
+Behaviour Rules
+
+-If no matching contact → create new primary
+-If matching contact found → return consolidated result
+-If new information provided → create secondary
+-If two primaries are linked → oldest remains primary
+-All linked records return under one consolidated response
+
+#$ Example
+Request
+{
+  "email": "mcfly@hillvalley.edu",
+  "phoneNumber": "123456"
+}
+Response
+{
+  "contact": {
+    "primaryContactId": 1,
+    "emails": [
+      "lorraine@hillvalley.edu",
+      "mcfly@hillvalley.edu"
+    ],
+    "phoneNumbers": ["123456"],
+    "secondaryContactIds": [23]
+  }
+}
+#@ Hosted Endpoint
+https://your-app-name.onrender.com/identify
+
+(Replace with your actual deployed URL)
+
+# How to Run Locally
+1. Install dependencies
+npm install
+2. Create PostgreSQL database
+CREATE DATABASE bitespeed;
+3. Start development server
+npm run dev
+
+Server runs on:
+
+http://localhost:3000
+## Build for Production
+npm run build
+npm start
+ Submission
+
+GitHub Repository Link
+
+Hosted /identify endpoint URL
+
+#@Author
+
+Bhagyawanth
+Bitespeed Backend Task Submission
