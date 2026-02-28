@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc",
-    "start": "node src/app.js"
+    "start": "node dist/app.js"
   },
   "dependencies": {
     "express": "^4.22.1",
