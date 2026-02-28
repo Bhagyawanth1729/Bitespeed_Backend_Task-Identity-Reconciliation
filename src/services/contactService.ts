@@ -61,7 +61,7 @@ export async function identifyContact(
 
     // 5️⃣ Determine oldest primary
     const primaries = cluster.filter(
-      (c) => c.linkprecedence === "primary"
+      (c) => c.linkprecedence === "Secondary"
     );
 
     const oldestPrimary = primaries.sort(
