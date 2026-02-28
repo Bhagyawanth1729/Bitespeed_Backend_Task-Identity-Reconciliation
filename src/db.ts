@@ -1,0 +1,10 @@
+import { Pool } from "pg";
+
+export const pool = new Pool({
+  user: "postgres",
+  host: "localhost",
+  database: "bitespeed",
+  password: "admin123",
+  port: 5434,
+});
+
