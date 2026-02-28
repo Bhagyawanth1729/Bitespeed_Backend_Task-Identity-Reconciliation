@@ -79,6 +79,7 @@ Behaviour Rules
 
 
 #$ Example
+```json
 Request
 {
   "email": "mcfly@hillvalley.edu",
@@ -96,7 +97,7 @@ Response
     "secondaryContactIds": [23]
   }
 }
-
+```
 ##  Hosted Endpoint
 https://bitespeed-backend-task-identity-2ztq.onrender.com/identify
 
