@@ -9,7 +9,6 @@ export async function identifyContact(
   try {
     await client.query("BEGIN");
 
-    // 1️⃣ Find all contacts matching email OR phone
     const { rows: matched } = await client.query(
       `
       SELECT * FROM Contact
@@ -18,7 +17,6 @@ export async function identifyContact(
       [email, phoneNumber]
     );
 
-    // 2️⃣ If no match → create new primary
     if (matched.length === 0) {
       const { rows } = await client.query(
         `
@@ -39,7 +37,6 @@ export async function identifyContact(
       };
     }
 
-    // 3️⃣ Collect all related IDs (primary + secondary)
     const primaryIds = new Set<number>();
 
     for (const contact of matched) {
@@ -50,7 +47,6 @@ export async function identifyContact(
       }
     }
 
-    // 4️⃣ Get full cluster
     const { rows: cluster } = await client.query(
       `
       SELECT * FROM Contact
@@ -59,7 +55,6 @@ export async function identifyContact(
       [Array.from(primaryIds)]
     );
 
-    // 5️⃣ Determine oldest primary
     const primaries = cluster.filter(
       (c) => c.linkprecedence === "primary"
     );
@@ -70,7 +65,6 @@ export async function identifyContact(
         new Date(b.createdat).getTime()
     )[0];
 
-    // 6️⃣ Convert other primaries to secondary
     for (const primary of primaries) {
       if (primary.id !== oldestPrimary.id) {
         await client.query(
@@ -85,9 +79,13 @@ export async function identifyContact(
       }
     }
 
-    // 7️⃣ Check if new secondary needed
-    const existingEmails = new Set(cluster.map(c => c.email).filter(Boolean));
-    const existingPhones = new Set(cluster.map(c => c.phonenumber).filter(Boolean));
+    const existingEmails = new Set(
+      cluster.map((c) => c.email).filter(Boolean)
+    );
+
+    const existingPhones = new Set(
+      cluster.map((c) => c.phonenumber).filter(Boolean)
+    );
 
     if (
       (email && !existingEmails.has(email)) ||
@@ -102,34 +100,54 @@ export async function identifyContact(
       );
     }
 
-const { rows: final } = await client.query(
-  `
-  SELECT * FROM Contact
-  WHERE id = $1 OR linkedId = $1
-  `,
-  [oldestPrimary.id]
-);
+    const { rows: final } = await client.query(
+      `
+      SELECT * FROM Contact
+      WHERE id = $1 OR linkedId = $1
+      `,
+      [oldestPrimary.id]
+    );
 
-await client.query("COMMIT");
+    await client.query("COMMIT");
 
-// ✅ Remove duplicates using Set
-const emailSet = new Set<string>();
-const phoneSet = new Set<string>();
-const secondaryIds: number[] = [];
+    const emailSet = new Set<string>();
+    const phoneSet = new Set<string>();
+    const secondaryIds: number[] = [];
 
-for (const contact of final) {
-  if (contact.email) emailSet.add(contact.email);
-  if (contact.phonenumber) phoneSet.add(contact.phonenumber);
+    for (const contact of final) {
+      if (contact.email) emailSet.add(contact.email);
+      if (contact.phonenumber) phoneSet.add(contact.phonenumber);
 
-  if (contact.linkprecedence === "secondary") {
-    secondaryIds.push(contact.id);
+      if (contact.linkprecedence === "secondary") {
+        secondaryIds.push(contact.id);
+      }
+    }
+
+    const emails = [
+      oldestPrimary.email,
+      ...Array.from(emailSet).filter(
+        (e) => e !== oldestPrimary.email
+      ),
+    ];
+
+    const phoneNumbers = [
+      oldestPrimary.phonenumber,
+      ...Array.from(phoneSet).filter(
+        (p) => p !== oldestPrimary.phonenumber
+      ),
+    ];
+
+    return {
+      primaryContactId: oldestPrimary.id,
+      emails,
+      phoneNumbers,
+      secondaryContactIds: secondaryIds,
+    };
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
 }
-
-return {
-  primaryContactId: oldestPrimary.id,
-  emails: Array.from(emailSet),
-  phoneNumbers: Array.from(phoneSet),
-  secondaryContactIds: secondaryIds,
-};
-  }
